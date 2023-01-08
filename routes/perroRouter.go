@@ -1,6 +1,8 @@
 package routes
 
 import (
+	"rest-template/controller"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -10,7 +12,7 @@ func InitDogRoutes(r *gin.Engine) {
 	// Se define un grupo de rutas
 	dogGroup := r.Group("/perro")
 	{
-		//perroGroup.GET("/", getPerroHandler)
+		dogGroup.GET("/", controller.GetDog)
 		//perroGroup.POST("/", postPerroHandler)
 	}
 }
