@@ -24,7 +24,7 @@ func main() {
 
 	// Conectar la base de datos
 	config.LoadDatabase()
-	println("Coneccion lograda")
+	println("Conexion lograda")
 
 	//Creacion de objeto gin
 	app := gin.Default()
@@ -35,8 +35,11 @@ func main() {
 		c.JSON(404, gin.H{"message": "Servicio no encontrado."})
 	})
 
+	// Se inicia el middleware JWT
+	authMiddleware := middleware.LoadJWTAuth()
+
 	// Se registran las rutas(end-points) del proyecto
-	routes.InitRoutes(app)
+	routes.InitRoutes(app, authMiddleware)
 
 	//Se inicializa el servidor
 	http.ListenAndServe(os.Getenv("ADDR"), app)
