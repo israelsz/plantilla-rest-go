@@ -36,10 +36,10 @@ func main() {
 	})
 
 	// Se inicia el middleware JWT
-	authMiddleware := middleware.LoadJWTAuth()
+	//authMiddleware := middleware.LoadJWTAuth()
 
 	// Se registran las rutas(end-points) del proyecto
-	routes.InitRoutes(app, authMiddleware)
+	routes.InitRoutes(app)
 
 	//Se inicializa el servidor
 	http.ListenAndServe(os.Getenv("ADDR"), app)

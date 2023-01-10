@@ -2,24 +2,24 @@ package routes
 
 import (
 	"rest-template/controller"
+	"rest-template/middleware"
 
-	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
 )
 
 // InitRoutes registra las rutas junto a las funciones que ejecutan
-func InitAuthRoutes(r *gin.Engine, authMiddleware *jwt.GinJWTMiddleware) {
+func InitAuthRoutes(r *gin.Engine) {
 	// Define a group of routes with a shared set of middleware
 	// Se define un grupo de rutas
-	adminGroup := r.Group("/admin")
-	adminGroup.Use(authMiddleware.MiddlewareFunc()) //Esta ruta solo puede ser utilizada por admins
+	adminGroup := r.Group("/loggeados")
 	{
-		adminGroup.GET("/", controller.GetAdmin)
+		adminGroup.GET("/admin", middleware.SetRoles(middleware.RolAdmin), middleware.LoadJWTAuth().MiddlewareFunc(), controller.GetAdmin)                       // Esta ruta solo puede ser usada por admins
+		adminGroup.GET("/usuario", middleware.SetRoles(middleware.RolAdmin, middleware.RolUser), middleware.LoadJWTAuth().MiddlewareFunc(), controller.GetAdmin) // Esta ruta solo puede ser usada por admins y usuarios loggeados
 		//perroGroup.POST("/", postPerroHandler)
 	}
 
 	authGroup := r.Group("/auth")
 	{
-		authGroup.POST("/login", authMiddleware.LoginHandler)
+		authGroup.POST("/login", middleware.LoadJWTAuth().LoginHandler)
 	}
 }

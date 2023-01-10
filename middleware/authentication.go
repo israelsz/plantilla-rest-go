@@ -11,6 +11,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// Roles en el sistema, para registrar nuevos roles, hacerlo aca
+const (
+	RolAdmin = "Admin"
+	RolUser  = "User"
+)
+
 // AuthorizatorFunc : funcion tipo middleware que define si el usuario esta autorizado a utilizar la siguiente funcion
 func AuthorizatorFunc(data interface{}, c *gin.Context) bool {
 
@@ -34,11 +40,26 @@ func AuthorizatorFunc(data interface{}, c *gin.Context) bool {
 		}
 		return false
 	*/
-	if datosUsuario, ok := data.(models.User); ok && datosUsuario.Email == "admin@a.com" {
+	userData := data.(map[string]interface{})
+	log.Println(userData)
+	log.Println("Correo: ", userData["email"])
+
+	roles, exists := c.Get("roles")
+	if !exists {
 		return true
 	}
-
+	for _, r := range roles.([]string) {
+		if userData["rol"] == r {
+			return true
+		}
+	}
 	return false
+
+	//if datosUsuario, ok := data.(map[string]interface{}); ok && datosUsuario["email"] == "admin@a.com" {
+	//	return true
+	//}
+
+	//return false
 }
 
 // UnauthorizedFunc : funcion que se llama en caso de no estar autorizado a accesar al servicio
@@ -103,14 +124,34 @@ func LoginFunc(c *gin.Context) (interface{}, error) {
 	email := loginVals.Email
 	password := loginVals.Password
 
-	if (email == "admin@a.com" && password == "admin") || (email == "test@a.com" && password == "test") {
+	if email == "admin@a.com" && password == "admin" {
 		return models.User{
 			Email: email,
-			Name:  "ElvisCochuelo",
+			Name:  "ModoKernel",
+			Rol:   RolAdmin,
+		}, nil
+	}
+
+	if email == "user@a.com" && password == "user" {
+		return models.User{
+			Email: email,
+			Name:  "ModoUsuario",
+			Rol:   RolUser,
 		}, nil
 	}
 
 	return nil, jwt.ErrFailedAuthentication
+}
+
+// SetRoles : funcion tipo middleware que define los roles que pueden realizar la siguiente funcion
+// Se implementa sobre las rutas para definir que rol puede ocupar el servicio
+func SetRoles(roles ...string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Set example variable
+		c.Set("roles", roles)
+		// before request
+		c.Next()
+	}
 }
 
 func LoadJWTAuth() *jwt.GinJWTMiddleware {
