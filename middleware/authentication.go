@@ -41,8 +41,8 @@ func AuthorizatorFunc(data interface{}, c *gin.Context) bool {
 		return false
 	*/
 	userData := data.(map[string]interface{})
-	log.Println(userData)
-	log.Println("Correo: ", userData["email"])
+	//log.Println("DATOS DE USUARIO: ", userData)
+	//log.Println("SOLO ROL: ", userData["rol"])
 
 	roles, exists := c.Get("roles")
 	if !exists {
@@ -72,13 +72,13 @@ func UnauthorizedFunc(c *gin.Context, code int, message string) {
 // PayLoad : funcion que define lo que tendra el jwt que se enviara al realizarse el login
 func PayLoad(data interface{}) jwt.MapClaims {
 	user := data.(models.User)
-	usuario := models.User{Email: user.Email, Name: user.Name, ID: user.ID}
+	usuario := models.User{Email: user.Email, Name: user.Name, ID: user.ID, Rol: user.Rol}
 	if v, ok := data.(models.User); ok {
 		claim := jwt.MapClaims{
 			"user": usuario,
 			"rol":  v.Rol,
 		}
-		log.Printf("%v", claim)
+		log.Printf("DENTRO DEL PAYLOAD: %v", claim)
 		return claim
 	}
 	return jwt.MapClaims{}
