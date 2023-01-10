@@ -7,22 +7,22 @@ import (
 	"os"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// Cliente con conexion a la base de datos
-//var DB *mongo.Client = ConnectDB()
-
 // Colecciones en la base de datos
-const (
-	CollectionNameCat = "Cat"
-)
+type DbConnection struct {
+	Client  *mongo.Client
+	Context context.Context
+}
 
-func LoadDatabase() {
+// Función que estable conexión a la base de datos
+func NewDbConnection() *DbConnection {
 	//Url para la conexión a mongodb
 	uri := "mongodb://" + os.Getenv("DB_USER") + ":" + os.Getenv("DB_PASS") + "@" + os.Getenv("DB_URL") + "/" + os.Getenv("DB_DB")
-	fmt.Println(uri)
+	log.Println(uri)
 	//Se establece la conexión con la base de datos
 	client, err := mongo.NewClient(options.Client().ApplyURI(uri))
 	if err != nil {
@@ -33,58 +33,24 @@ func LoadDatabase() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer client.Disconnect(ctx)
-	// Sacar esto despues de ver si funciono la conexion
-	//err = client.Ping(ctx, readpref.Primary())
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//databases, err := client.ListDatabaseNames(ctx, bson.M{})
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//fmt.Println(databases)
-
-}
-
-/*
-func ConnectDB() *mongo.Client {
-	uri := "mongodb://" + os.Getenv("DB_USER") + ":" + os.Getenv("DB_PASS") + "@" + os.Getenv("DB_URL") + "/" + os.Getenv("DB_DB")
-	client, err := mongo.NewClient(options.Client().ApplyURI(uri))
+	dbNames, err := client.ListDatabaseNames(ctx, bson.M{})
 	if err != nil {
 		log.Fatal(err)
 	}
+	fmt.Println(dbNames)
 
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	err = client.Connect(ctx)
-	if err != nil {
-		log.Fatal(err)
+	return &DbConnection{
+		Client:  client,
+		Context: ctx,
 	}
-
-	//ping the database
-	err = client.Ping(ctx, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println("Connected to MongoDB")
-	return client
 }
 
-// getting database collections
-func GetCollection(client *mongo.Client, collectionName string) *mongo.Collection {
-	collection := client.Database(os.Getenv("DB_DB")).Collection(collectionName)
-	return collection
+// Función que cierra la conexión a la base de datos
+func (c *DbConnection) Close() {
+	c.Client.Disconnect(c.Context)
 }
 
-//os.Getenv("DB_URL")
-
-//mongodb://templategoRESTUser:Sf17a033vcF!@localhost:27017/?authMechanism=DEFAULT
-//mongodb://os.Getenv("DB_USER"):os.Getenv("DB_PASS")@os.Getenv("DB_URL")/?authMechanism=DEFAULT
-
-//clientOptions := options.Client().ApplyURI(middlewares.DotEnvVariable("MONGO_URL"))
-//mongodb://mongo:27100/db
-
-//https://www.mongodb.com/blog/post/quick-start-golang-mongodb-starting-and-setup
-
-// mongodb://templategoRESTUser:Sf17a033vcF!@localhost:27017/templategoREST
-*/
+// Función que retorna una colección
+func (c *DbConnection) GetCollection(collection string) *mongo.Collection {
+	return c.Client.Database(os.Getenv("DB_DB")).Collection(collection)
+}

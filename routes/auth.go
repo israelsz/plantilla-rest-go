@@ -24,6 +24,7 @@ func InitAuthRoutes(r *gin.Engine) {
 	{
 		authGroup.POST("/login", middleware.LoadJWTAuth().LoginHandler)
 		authGroup.POST("/refresh_token", middleware.LoadJWTAuth().RefreshHandler)
+		authGroup.POST("/logout", middleware.LoadJWTAuth().LogoutHandler)
 
 	}
 }

@@ -1,8 +1,11 @@
 package middleware
 
 import (
+	"errors"
 	"log"
+	"net/http"
 	"os"
+	"rest-template/controller"
 	"rest-template/models"
 	"rest-template/utils"
 	"time"
@@ -118,29 +121,37 @@ func LoginFunc(c *gin.Context) (interface{}, error) {
 	*/
 
 	var loginVals models.Login
+	log.Println("VALOR DE C: ", c)
 	if err := c.ShouldBind(&loginVals); err != nil {
 		return "", jwt.ErrMissingLoginValues
 	}
-	email := loginVals.Email
-	password := loginVals.Password
+	//email := loginVals.Email
+	//password := loginVals.Password
 
-	if email == "admin@a.com" && password == "admin" {
-		return models.User{
-			Email: email,
-			Name:  "ModoKernel",
-			Rol:   RolAdmin,
-		}, nil
+	// Se establece conexion a la base de datos
+	//Se busca la coleccion de usuarios y al usuario correspondiente
+	var user models.User
+	//Se trae al usuario buscandolo por su email
+	log.Println("Contexto antes de getUser", c)
+	controller.GetUserByEmail(c)
+	log.Println("Contexto despues de getUser", c)
+	//Se escriben los datos del usuario traido desde la base de datos al model
+	if err := c.ShouldBindJSON(&user); err != nil {
+		log.Println("No fue posible encontrar al usuario")
+		c.AbortWithError(http.StatusBadRequest, err)
+		return nil, errors.New("usuario y contraseña incorrectos")
 	}
 
-	if email == "user@a.com" && password == "user" {
-		return models.User{
-			Email: email,
-			Name:  "ModoUsuario",
-			Rol:   RolUser,
-		}, nil
+	//Chequear credenciales del usuario
+	if err := controller.ComparePasswords(user.Hash, loginVals.Password); err != nil {
+		//return nil, jwt.ErrFailedAuthentication
+		return nil, errors.New("contraseña incorrecta")
 	}
 
-	return nil, jwt.ErrFailedAuthentication
+	//Si usuario y contraseña son correctos
+	return user, nil
+
+	//return nil, jwt.ErrFailedAuthentication
 }
 
 // SetRoles : funcion tipo middleware que define los roles que pueden realizar la siguiente funcion
@@ -187,7 +198,7 @@ func LoadJWTAuth() *jwt.GinJWTMiddleware {
 		// - "query:<name>"
 		// - "cookie:<name>"
 		// - "param:<name>"
-		TokenLookup: "header: Authorization",
+		//TokenLookup: "header: Authorization",
 		// TokenLookup: "query:token",
 		// TokenLookup: "cookie:token",
 
@@ -196,6 +207,15 @@ func LoadJWTAuth() *jwt.GinJWTMiddleware {
 
 		// TimeFunc provides the current time. You can override it to use another time value. This is useful for testing or if your server uses a different time zone than your tokens.
 		TimeFunc: time.Now,
+
+		// Guardar token JWT como cookie en el navegador
+		SendCookie:     true,
+		SecureCookie:   false, //non HTTPS dev environments
+		CookieHTTPOnly: true,  // JS can't modify
+		//CookieDomain:   "localhost:8080", Se debe ingresar la URL del host
+		CookieName:     "token", // default jwt
+		TokenLookup:    "cookie:token",
+		CookieSameSite: http.SameSiteDefaultMode, //SameSiteDefaultMode, SameSiteLaxMode, SameSiteStrictMode, SameSiteNoneMode
 	})
 
 	// Verificar si existen errores

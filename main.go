@@ -4,7 +4,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"rest-template/config"
 	"rest-template/middleware"
 	"rest-template/routes"
 	"rest-template/utils"
@@ -23,8 +22,8 @@ func main() {
 	log.Printf("serverUp, %s ", os.Getenv("ADDR"))
 
 	// Conectar la base de datos
-	config.LoadDatabase()
-	println("Conexion lograda")
+	//config.NewDbConnection()
+	//println("Conexion lograda")
 
 	//Creacion de objeto gin
 	app := gin.Default()
