@@ -5,8 +5,8 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"rest-template/controller"
 	"rest-template/models"
+	"rest-template/services"
 	"rest-template/utils"
 	"time"
 
@@ -20,49 +20,25 @@ const (
 	RolUser  = "User"
 )
 
-// AuthorizatorFunc : funcion tipo middleware que define si el usuario esta autorizado a utilizar la siguiente funcion
+// AuthorizatorFunc : funcion tipo middleware que define si el usuario esta autorizado a utilizar un servicio
 func AuthorizatorFunc(data interface{}, c *gin.Context) bool {
 
-	/*
-		user := data.(map[string]interface{})
-		colUser, session := model.GetCollection(model.CollectionNameUser)
-		defer session.Close()
-		var usuario model.User
-
-		if err := colUser.FindId(bson.ObjectIdHex(user["id"].(string))).One(&usuario); err != nil {
-			return false
-		}
-		roles, exists := c.Get("roles")
-		if !exists {
-			return true
-		}
-		for _, r := range roles.([]string) {
-			if usuario.Rol == r {
-				return true
-			}
-		}
-		return false
-	*/
+	//Se consiguen los datos entrantes a verificar
 	userData := data.(map[string]interface{})
-	//log.Println("DATOS DE USUARIO: ", userData)
-	//log.Println("SOLO ROL: ", userData["rol"])
 
+	// Se consiguen los roles registrados para la ruta a verificar
 	roles, exists := c.Get("roles")
 	if !exists {
 		return true
 	}
 	for _, r := range roles.([]string) {
+		//Si el usuario tienea algun rol vinculado a la ruta, se le permite su acceso a ella
 		if userData["rol"] == r {
 			return true
 		}
 	}
+	// En caso contrario, se le deniega el permiso
 	return false
-
-	//if datosUsuario, ok := data.(map[string]interface{}); ok && datosUsuario["email"] == "admin@a.com" {
-	//	return true
-	//}
-
-	//return false
 }
 
 // UnauthorizedFunc : funcion que se llama en caso de no estar autorizado a accesar al servicio
@@ -75,83 +51,52 @@ func UnauthorizedFunc(c *gin.Context, code int, message string) {
 // PayLoad : funcion que define lo que tendra el jwt que se enviara al realizarse el login
 func PayLoad(data interface{}) jwt.MapClaims {
 	user := data.(models.User)
+	//Se fijan los campos que contendra el token jwt insertos
 	usuario := models.User{Email: user.Email, Name: user.Name, ID: user.ID, Rol: user.Rol}
 	if v, ok := data.(models.User); ok {
 		claim := jwt.MapClaims{
 			"user": usuario,
 			"rol":  v.Rol,
 		}
-		log.Printf("DENTRO DEL PAYLOAD: %v", claim)
 		return claim
 	}
 	return jwt.MapClaims{}
 }
 
+// Función que retorna las claims registradas en la función de Payload
 func IdentityHandlerFunc(c *gin.Context) interface{} {
 	jwtClaims := jwt.ExtractClaims(c)
-	return jwtClaims["user"]
+	return jwtClaims["user"] //Retrona la claim registrada para usuario en payload.
 }
 
-// Función que permite hacer login
+// Función que permite hacer login en la aplicación y conseguir un token jwt
 func LoginFunc(c *gin.Context) (interface{}, error) {
-	/*
-		var loginVals models.Login
-		//Se revisa el json entrante
-		if err := c.BindJSON(&loginVals); err != nil {
-			return "", jwt.ErrMissingLoginValues
-		}
-		// Se establece conexion a la base de datos
-		//Se busca la coleccion de usuarios y al usuario correspondiente
-
-
-			colUser, session := models.GetCollection(model.CollectionNameUser)
-			defer session.Close()
-			var usuario models.User
-
-			if err := colUser.Find(bson.M{"email": loginVals.Email}).One(&usuario); err != nil {
-				//return nil, jwt.ErrFailedAuthentication
-				return nil, errors.New("Usuario y contraseña incorrectos")
-			} else {
-				if err := ComparePasswords(usuario.Hash, loginVals.Password); err != nil {
-					//return nil, jwt.ErrFailedAuthentication
-					return nil, errors.New("Usuario y contraseña incorrectos")
-				}
-				return usuario, nil
-			}
-	*/
-
-	var loginVals models.Login
-	log.Println("VALOR DE C: ", c)
-	if err := c.ShouldBind(&loginVals); err != nil {
+	var loginValues models.Login
+	// Se asocian los valores entrantes por contexto al modelo de Login creado
+	if err := c.ShouldBind(&loginValues); err != nil {
 		return "", jwt.ErrMissingLoginValues
 	}
-	//email := loginVals.Email
-	//password := loginVals.Password
+	email := loginValues.Email
+	password := loginValues.Password
 
 	// Se establece conexion a la base de datos
-	//Se busca la coleccion de usuarios y al usuario correspondiente
-	var user models.User
-	//Se trae al usuario buscandolo por su email
-	log.Println("Contexto antes de getUser", c)
-	controller.GetUserByEmail(c)
-	log.Println("Contexto despues de getUser", c)
-	//Se escriben los datos del usuario traido desde la base de datos al model
-	if err := c.ShouldBindJSON(&user); err != nil {
+	// y se trae al usuario buscandolo por su email
+	user, err := services.GetUserByEmailService(email)
+	// Si hubo algun error
+	if err != nil {
 		log.Println("No fue posible encontrar al usuario")
 		c.AbortWithError(http.StatusBadRequest, err)
 		return nil, errors.New("usuario y contraseña incorrectos")
 	}
 
 	//Chequear credenciales del usuario
-	if err := controller.ComparePasswords(user.Hash, loginVals.Password); err != nil {
+	if err := utils.ComparePasswords(user.Hash, password); err != nil {
 		//return nil, jwt.ErrFailedAuthentication
 		return nil, errors.New("contraseña incorrecta")
 	}
 
-	//Si usuario y contraseña son correctos
+	//Retorna al usuario
 	return user, nil
-
-	//return nil, jwt.ErrFailedAuthentication
 }
 
 // SetRoles : funcion tipo middleware que define los roles que pueden realizar la siguiente funcion
@@ -165,17 +110,17 @@ func SetRoles(roles ...string) gin.HandlerFunc {
 	}
 }
 
+// Función que retorna una struct del middleware
 func LoadJWTAuth() *jwt.GinJWTMiddleware {
-	log.Print("LoadJWTAuth\n")
 	var key string
 	var set bool
+	//Se carga la key de jwt seteada desde las variables de entorno
 	key, set = os.LookupEnv("JWT_KEY")
 	if !set {
+		//Si no estaba seteada, se fija una por default
 		key = "string_largo_unico_por_proyecto"
 	}
-
-	log.Println("key: " + key)
-
+	//Se crea el middleware
 	authMiddleware, err := jwt.New(&jwt.GinJWTMiddleware{
 		Realm: "test zone",
 		Key:   []byte(key),

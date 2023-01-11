@@ -12,9 +12,10 @@ func InitUserRoutes(r *gin.Engine) {
 	// Se define un grupo de rutas
 	userGroup := r.Group("/user")
 	{
-		userGroup.POST("/create", controller.CreateUser)
+		userGroup.POST("/register", controller.CreateUser)
 		userGroup.GET("/get/:id", controller.GetUserByID)
 		userGroup.GET("/email/:email", controller.GetUserByEmail)
+		userGroup.PUT("/update/:id", controller.UpdateUser)
 		//perroGroup.POST("/", postPerroHandler)
 	}
 }
