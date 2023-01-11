@@ -13,9 +13,10 @@ func InitUserRoutes(r *gin.Engine) {
 	userGroup := r.Group("/user")
 	{
 		userGroup.POST("/register", controller.CreateUser)
-		userGroup.GET("/get/:id", controller.GetUserByID)
+		userGroup.GET("/:id", controller.GetUserByID)
 		userGroup.GET("/email/:email", controller.GetUserByEmail)
+		userGroup.GET("/", controller.GetAllUsers)
 		userGroup.PUT("/update/:id", controller.UpdateUser)
-		//perroGroup.POST("/", postPerroHandler)
+		userGroup.DELETE("/delete/:id", controller.DeleteUser)
 	}
 }

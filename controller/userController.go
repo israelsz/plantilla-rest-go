@@ -28,14 +28,13 @@ func CreateUser(ctx *gin.Context) {
 
 	createdUser, err := services.CreateUserService(newUser)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Error al crear el usuario"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
 	ctx.JSON(http.StatusCreated, createdUser)
 }
 
-// Función para obtener un gato por id
+// Función para obtener un usuario por id
 func GetUserByID(ctx *gin.Context) {
 	// Obtiene el ID del usuario a partir del parámetro de la ruta.
 	userID := ctx.Param("id")
@@ -47,7 +46,7 @@ func GetUserByID(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, resultUser)
 }
 
-// Función para obtener un gato por id
+// Función para obtener un usuario por id
 func GetUserByEmail(ctx *gin.Context) {
 	userEmail := ctx.Param("email")
 	resultUser, err := services.GetUserByEmailService(userEmail)
@@ -69,17 +68,42 @@ func GetUserByEmail(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resultUser)
 }
 
+func GetAllUsers(ctx *gin.Context) {
+	resultUser, err := services.GetAllUserService()
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Error al obtener el usuario"})
+		return
+	}
+	ctx.JSON(http.StatusCreated, resultUser)
+}
+
 func UpdateUser(ctx *gin.Context) {
 	var updatedUser models.User
 	if err := ctx.ShouldBindJSON(&updatedUser); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Error al procesar los datos de usuario"})
 		return
 	}
-	userEmail := ctx.Param("id")
-	updatedUser, err := services.UpdateUserService(updatedUser, userEmail)
+	userId := ctx.Param("id")
+	updatedUser, err := services.UpdateUserService(updatedUser, userId)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Error al updatear al usuario"})
 		return
 	}
 	ctx.JSON(http.StatusCreated, updatedUser)
+}
+
+// Función para obtener un usuario por id
+func DeleteUser(ctx *gin.Context) {
+	userID := ctx.Param("id")
+	err := services.DeleteUserService(userID)
+	// Si hubo un error
+	if err != nil {
+		// Ocurrió un error durante la búsqueda.
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	// Si no hay error se retorna el usuario
+	log.Println("Se elimino el usuario")
+	// Devuelve el usuario encontrado.
+	ctx.JSON(http.StatusOK, "Usuario eliminado")
 }

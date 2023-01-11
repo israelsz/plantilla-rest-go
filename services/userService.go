@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"log"
 	"rest-template/config"
 	"rest-template/models"
@@ -68,11 +69,9 @@ func CreateUserService(newUser models.User) (models.User, error) {
 			return newUser, nil
 		}
 		// Ocurrió un error durante la búsqueda.
-		log.Println("Error al buscar el email en la base de datos: ", err)
 		return newUser, err
 	}
-	log.Println("El email ya existe en la base de datos:", err)
-	return newUser, err
+	return newUser, errors.New("usuario se encuentra en la base de datos")
 }
 
 // Función para obtener un gato por id
@@ -138,6 +137,31 @@ func GetUserByEmailService(userEmail string) (models.User, error) {
 	return result, nil
 }
 
+func GetAllUserService() ([]models.User, error) {
+	log.Println("Service: GetAllUserService")
+	// Crea una nueva instancia a la conexión de base de datos
+	dbConnection := config.NewDbConnection()
+	// Define un defer para cerrar la conexión a la base de datos al finalizar la función.
+	defer dbConnection.Close()
+	collection := dbConnection.GetCollection(CollectionNameUser)
+	// Variable que contiene a todos los gatos
+	var users []models.User
+	// Trae a todos los gatos desde la base de datos
+	results, err := collection.Find(dbConnection.Context, bson.M{})
+	if err != nil {
+		return users, errors.New("no fue posible traer a todos los gatos")
+	}
+	for results.Next(dbConnection.Context) {
+		var singleUser models.User
+		if err = results.Decode(&singleUser); err != nil {
+			log.Println("Usuario no se pudo añadir")
+		}
+
+		users = append(users, singleUser)
+	}
+	return users, nil
+}
+
 func UpdateUserService(updatedUser models.User, userID string) (models.User, error) {
 	log.Println("Service: UpdateUser")
 	//Se valida el usuario antes de ingresar a la base de datos
@@ -169,4 +193,32 @@ func UpdateUserService(updatedUser models.User, userID string) (models.User, err
 	}
 	log.Println("Usuario actualizado")
 	return resultUser, nil
+}
+
+func DeleteUserService(userID string) error {
+	log.Println("Service: DeleteCat")
+	// Obtiene el ID del gato a partir del parámetro de la ruta.
+	// Crea un objeto ID de MongoDB a partir del ID del gato.
+	oid, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		log.Println("No fue posible convertir el ID")
+		return errors.New("id invalido")
+	}
+	// Crea una nueva instancia a la conexión de base de datos
+	dbConnection := config.NewDbConnection()
+	// Define un defer para cerrar la conexión a la base de datos al finalizar la función.
+	defer dbConnection.Close()
+	// Se elimina el usuario
+	filter := bson.M{"_id": oid}
+	collection := dbConnection.GetCollection(CollectionNameUser)
+	// Elimina el gato de la colección.
+	result, _ := collection.DeleteOne(dbConnection.Context, filter)
+	log.Println(result)
+	// Si no hay error
+	if result.DeletedCount == 1 {
+		// Se pudo eliminar el usuario
+		return nil
+	}
+	// No se pudo eliminar el usuario
+	return errors.New("usuario no pudo ser eliminado")
 }
