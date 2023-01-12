@@ -2,6 +2,7 @@ package routes
 
 import (
 	"rest-template/controller"
+	"rest-template/middleware"
 
 	"github.com/gin-gonic/gin"
 )
@@ -12,10 +13,13 @@ func InitCatRoutes(r *gin.Engine) {
 	// Se define un grupo de rutas
 	catGroup := r.Group("/cat")
 	{
-		catGroup.POST("/", controller.CreateCat)
+		//Solo un usuario logueado sin importar su rol, puede crear un gato
+		catGroup.POST("/", middleware.LoadJWTAuth().MiddlewareFunc(), controller.CreateCat)
 		catGroup.GET("/:id", controller.GetCatByID)
 		catGroup.GET("/", controller.GetAllCats)
-		catGroup.DELETE("/:id", controller.DeleteCat)
-		catGroup.PUT("/:id", controller.UpdateCat)
+		//Solo un usuario o admin logueados pueden actualizar a un gato
+		catGroup.PUT("/:id", middleware.SetRoles(middleware.RolAdmin, middleware.RolUser), middleware.LoadJWTAuth().MiddlewareFunc(), controller.UpdateCat)
+		//Solo un Admin logueado puede eliminar a un gato
+		catGroup.DELETE("/:id", middleware.SetRoles(middleware.RolAdmin), middleware.LoadJWTAuth().MiddlewareFunc(), controller.DeleteCat)
 	}
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -12,7 +13,6 @@ import (
 )
 
 func main() {
-
 	// Se cargan variables de entorno
 	utils.LoadEnv()
 
@@ -21,11 +21,16 @@ func main() {
 	log.Println("Start template-go-rest")
 	log.Printf("serverUp, %s ", os.Getenv("ADDR"))
 
+	// Se carga la ruta donde se almacena los logs.
+	utils.LoadLogFile("logs/", os.Getenv("LOG_NAME"), 1, 1, 5)
+
 	//Se fija el modo de gin desde las variables de entorno (debug | release)
 	gin.SetMode(os.Getenv("GIN_MODE"))
 
 	//Creacion de objeto gin
 	app := gin.Default()
+	// Se agrega al log creado
+	gin.DefaultWriter = io.MultiWriter(os.Stdout, log.Writer())
 	// Cargar Cors
 	app.Use(middleware.CorsMiddleware())
 

@@ -2,6 +2,7 @@ package routes
 
 import (
 	"rest-template/controller"
+	"rest-template/middleware"
 
 	"github.com/gin-gonic/gin"
 )
@@ -16,7 +17,9 @@ func InitUserRoutes(r *gin.Engine) {
 		userGroup.GET("/:id", controller.GetUserByID)
 		userGroup.GET("/email/:email", controller.GetUserByEmail)
 		userGroup.GET("/", controller.GetAllUsers)
-		userGroup.PUT("/:id", controller.UpdateUser)
-		userGroup.DELETE("/:id", controller.DeleteUser)
+		// Solo Usuarios y Admins logueados pueden actualizar datos de usuario
+		userGroup.PUT("/:id", middleware.SetRoles(middleware.RolAdmin, middleware.RolUser), middleware.LoadJWTAuth().MiddlewareFunc(), controller.UpdateUser)
+		// Solo Admins logueados pueden borrar usuarios
+		userGroup.DELETE("/:id", middleware.SetRoles(middleware.RolAdmin), middleware.LoadJWTAuth().MiddlewareFunc(), controller.DeleteUser)
 	}
 }

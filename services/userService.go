@@ -2,7 +2,6 @@ package services
 
 import (
 	"errors"
-	"log"
 	"rest-template/config"
 	"rest-template/models"
 	"rest-template/utils"
@@ -21,15 +20,74 @@ const (
 	CollectionNameUser = "User"
 )
 
+// Función que valida un usuario
+func validarUsuarioCreate(user models.User) (bool, error) {
+	err := errors.New("Estructura invalida")
+	// Se verifica que el email ingresado sea valido
+	if !govalidator.IsEmail(user.Email) {
+
+		return false, err
+	}
+	// Se verifica que haya un nombre ingresado
+	if !govalidator.ByteLength(user.Name, "2", "20") || !govalidator.IsAlphanumeric(user.Name) {
+		return false, err
+	}
+	// Se verifica que haya una contraseña ingresada
+	if !govalidator.ByteLength(user.Password, "2", "20") || !govalidator.IsAlphanumeric(user.Password) {
+		return false, err
+	}
+	// Se verifica que el rol sea ingresado
+	if !govalidator.ByteLength(user.Rol, "1", "20") {
+		return false, err
+	}
+	return true, nil
+}
+
+// Función que valida un usuario
+func validarUsuarioUpdate(user models.User) (bool, error) {
+	err := errors.New("Estructura invalida")
+	// Se verifica que el email ingresado sea valido
+	if govalidator.IsEmail(user.Email) && !(user.Email == "") {
+		err = correoOcupado(user.Email)
+		if err != nil {
+			return false, err
+		}
+
+	}
+	// Se verifica que haya un nombre ingresado
+	if (!govalidator.ByteLength(user.Name, "2", "20") || govalidator.IsAlphanumeric(user.Name)) && user.Name != "" {
+		return false, err
+	}
+	// Se verifica que haya una contraseña ingresada
+	if (!govalidator.ByteLength(user.Password, "2", "20") || !govalidator.IsAlphanumeric(user.Password)) && user.Password != "" {
+		return false, err
+	}
+	// Se verifica que el rol sea ingresado
+	if !govalidator.ByteLength(user.Rol, "1", "20") && user.Rol != "" {
+		return false, err
+	}
+	return true, nil
+}
+
+func correoOcupado(email string) error {
+	dbConnection := config.NewDbConnection()
+	defer dbConnection.Close()
+	var result models.User
+	filter := bson.M{"email": email}
+	collection := dbConnection.GetCollection(CollectionNameUser)
+	err := collection.FindOne(dbConnection.Context, filter).Decode(&result)
+	return err
+}
+
 // Función para crear un usuario e insertarlo a la base de datos de mongodb
 func CreateUserService(newUser models.User) (models.User, error) {
-	log.Println("Service: CreateUser")
+	utils.Debug("Service: CreateUser")
 	//Se valida el usuario antes de ingresar a la base de datos
-	ok, err := govalidator.ValidateStruct(newUser)
-	log.Println("Valor de ok:", ok)
+	ok, err := validarUsuarioCreate(newUser)
+	utils.Debug("Valor de ok:", ok)
 	//Si el usuario no tiene una estructura valida
 	if !ok {
-		log.Println("Validation error: ", err)
+		utils.Debug("Estructura invalida")
 		return newUser, err
 	}
 	//Si el usuario es valido
@@ -41,12 +99,8 @@ func CreateUserService(newUser models.User) (models.User, error) {
 	collection := dbConnection.GetCollection(CollectionNameUser)
 
 	// Se revisa si el usuario se encuentra en la base de datos
-
 	// Buscar si el email existe
-	var result models.User
-	// Creando un filtro de busqueda
-	filter := bson.M{"email": newUser.Email}
-	err = collection.FindOne(dbConnection.Context, filter).Decode(&result)
+	err = correoOcupado(newUser.Email)
 	//Si no fue encontrar el email
 	if err != nil {
 		//Si el email no se encuentra en la base de datos
@@ -62,10 +116,10 @@ func CreateUserService(newUser models.User) (models.User, error) {
 			// No se encontró ningún documento con el email especificado, entonces se inserta el nuevo usuario
 			_, err = collection.InsertOne(dbConnection.Context, newUser)
 			if err != nil {
-				log.Println("Error al insertar nuevo usuario: ", err)
+				utils.Debug("Error al insertar nuevo usuario: ", err)
 				return newUser, err
 			}
-			log.Println("Nuevo usuario creado con exito")
+			utils.Debug("Nuevo usuario creado con exito")
 			return newUser, nil
 		}
 		// Ocurrió un error durante la búsqueda.
@@ -76,7 +130,7 @@ func CreateUserService(newUser models.User) (models.User, error) {
 
 // Función para obtener a un usuario por su id
 func GetUserByIDService(userID string) (models.User, error) {
-	log.Println("Service: GetUserByID")
+	utils.Debug("Service: GetUserByID")
 	// Crea una nueva instancia a la conexión de base de datos
 	dbConnection := config.NewDbConnection()
 	// Define un defer para cerrar la conexión a la base de datos al finalizar la función.
@@ -85,32 +139,31 @@ func GetUserByIDService(userID string) (models.User, error) {
 	var result models.User
 	oid, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
-		log.Println("No fue posible convertir el ID")
+		utils.Debug("No fue posible convertir el ID")
 		return result, err
 	}
 	// Crea un filtro para buscar al usuario por su ID.
 	filter := bson.M{"_id": oid}
-
 	// Obtiene la colección de usuarios.
 	collection := dbConnection.GetCollection(CollectionNameUser)
 	err = collection.FindOne(dbConnection.Context, filter).Decode(&result)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			// No se encontró ningún documento con el ID especificado.
-			log.Println("Usuario no encontrado")
+			utils.Debug("Usuario no encontrado")
 			return result, err
 		}
 		// Ocurrió un error durante la búsqueda.
 		return result, err
 	}
-	log.Println("Se encontró el usuario")
+	utils.Debug("Se encontró el usuario")
 	// Devuelve al usuario encontrado.
 	return result, nil
 }
 
 // Función para obtener a un usuario por id
 func GetUserByEmailService(userEmail string) (models.User, error) {
-	log.Println("Service: GetUserByEmail")
+	utils.Debug("Service: GetUserByEmail")
 	// Crea una nueva instancia a la conexión de base de datos
 	dbConnection := config.NewDbConnection()
 	// Define un defer para cerrar la conexión a la base de datos al finalizar la función.
@@ -125,19 +178,19 @@ func GetUserByEmailService(userEmail string) (models.User, error) {
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			// No se encontró ningún documento con el email especificado.
-			log.Println("Usuario no encontrado, err")
+			utils.Debug("Usuario no encontrado, err")
 			return result, err
 		}
 		// Ocurrió un error durante la búsqueda.
 		return result, err
 	}
-	log.Println("Se encontró el usuario")
+	utils.Debug("Se encontró el usuario")
 	// Devuelve el usuario encontrado.
 	return result, nil
 }
 
 func GetAllUserService() ([]models.User, error) {
-	log.Println("Service: GetAllUserService")
+	utils.Debug("Service: GetAllUserService")
 	// Crea una nueva instancia a la conexión de base de datos
 	dbConnection := config.NewDbConnection()
 	// Define un defer para cerrar la conexión a la base de datos al finalizar la función.
@@ -153,7 +206,7 @@ func GetAllUserService() ([]models.User, error) {
 	for results.Next(dbConnection.Context) {
 		var singleUser models.User
 		if err = results.Decode(&singleUser); err != nil {
-			log.Println("Usuario no se pudo añadir")
+			utils.Debug("Usuario no se pudo añadir")
 		}
 
 		users = append(users, singleUser)
@@ -162,19 +215,23 @@ func GetAllUserService() ([]models.User, error) {
 }
 
 func UpdateUserService(updatedUser models.User, userID string) (models.User, error) {
-	log.Println("Service: UpdateUser")
+	utils.Debug("Service: UpdateUser")
+	ok, err := validarUsuarioUpdate(updatedUser)
 	//Se valida el usuario antes de ingresar a la base de datos
-	ok, err := govalidator.ValidateStruct(updatedUser)
 	//Si el usuario no tiene una estructura valida
 	if !ok {
-		log.Println("Validation error: ", err)
+		utils.Debug("Validation error: ", err)
 		return updatedUser, err
 	}
 	var resultUser models.User
 	oid, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
-		log.Println("No fue posible convertir el ID")
+		utils.Debug("No fue posible convertir el ID")
 		return resultUser, err
+	}
+	if updatedUser.Password != "" {
+		updatedUser.Hash = utils.GeneratePassword(updatedUser.Password)
+		updatedUser.Password = ""
 	}
 	// Se actualiza la fecha de actualización
 	resultUser.UpdatedAt = time.Now()
@@ -190,7 +247,7 @@ func UpdateUserService(updatedUser models.User, userID string) (models.User, err
 	if err != nil {
 		return resultUser, err
 	}
-	log.Println("Usuario actualizado")
+	utils.Debug("Usuario actualizado")
 	return resultUser, nil
 }
 
@@ -198,7 +255,7 @@ func DeleteUserService(userID string) error {
 	// Crea un objeto ID de MongoDB a partir del ID del usuario.
 	oid, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
-		log.Println("No fue posible convertir el ID")
+		utils.Debug("No fue posible convertir el ID")
 		return errors.New("id invalido")
 	}
 	// Crea una nueva instancia a la conexión de base de datos
@@ -210,7 +267,7 @@ func DeleteUserService(userID string) error {
 	collection := dbConnection.GetCollection(CollectionNameUser)
 	// Elimina al usuario de la colección.
 	result, _ := collection.DeleteOne(dbConnection.Context, filter)
-	log.Println(result)
+	utils.Debug(result)
 	// Si no hay error
 	if result.DeletedCount == 1 {
 		// Se pudo eliminar el usuario

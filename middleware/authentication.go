@@ -164,7 +164,9 @@ func LoadJWTAuth() *jwt.GinJWTMiddleware {
 	})
 
 	// Verificar si existen errores
-	utils.Check(err)
+	if err != nil {
+		log.Println("Hubo un error al cargar el middleware")
+	}
 
 	return authMiddleware
 
