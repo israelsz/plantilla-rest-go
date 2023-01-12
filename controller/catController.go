@@ -59,26 +59,38 @@ func DeleteCat(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, "Gato eliminado")
 }
 
+// Servicio que permite actualizar a un gato
 func UpdateCat(ctx *gin.Context) {
+	//Se crea un modelo de gato
 	var updatedCat models.Cat
+	//Se guardan los datos de la petición http en el modelo
+	//Si hubo un error
 	if err := ctx.ShouldBindJSON(&updatedCat); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Error al procesar los datos del Gato"})
 		return
 	}
+	//Se consigue el id del gato a actualizar
 	catID := ctx.Param("id")
+	//Se actualiza el gato en la base de datos
 	updatedCat, err := services.UpdateCatService(updatedCat, catID)
+	//Si ocurrio un error
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Error al actualizar al gato"})
 		return
 	}
+	//Se envia la respuesta http
 	ctx.JSON(http.StatusCreated, updatedCat)
 }
 
+// Servicio para conseguir a todos los gatos de la base de datos
 func GetAllCats(ctx *gin.Context) {
+	// Se consiguen a los gatos de la base de datos
 	resultCats, err := services.GetAllCatsService()
+	//Si ocurrio un error
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Error al obtener los gatos"})
 		return
 	}
+	//Se envia la respuesta http
 	ctx.JSON(http.StatusCreated, resultCats)
 }

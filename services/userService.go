@@ -74,25 +74,24 @@ func CreateUserService(newUser models.User) (models.User, error) {
 	return newUser, errors.New("usuario se encuentra en la base de datos")
 }
 
-// Función para obtener un gato por id
+// Función para obtener a un usuario por su id
 func GetUserByIDService(userID string) (models.User, error) {
 	log.Println("Service: GetUserByID")
 	// Crea una nueva instancia a la conexión de base de datos
 	dbConnection := config.NewDbConnection()
 	// Define un defer para cerrar la conexión a la base de datos al finalizar la función.
 	defer dbConnection.Close()
-	// Obtiene el ID del gato a partir del parámetro de la ruta.
-	// Crea un objeto ID de MongoDB a partir del ID del gato.
+	// Crea un objeto ID de MongoDB a partir del ID del usuario
 	var result models.User
 	oid, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
 		log.Println("No fue posible convertir el ID")
 		return result, err
 	}
-	// Crea un filtro para buscar el gato por su ID.
+	// Crea un filtro para buscar al usuario por su ID.
 	filter := bson.M{"_id": oid}
 
-	// Obtiene la colección de gatos.
+	// Obtiene la colección de usuarios.
 	collection := dbConnection.GetCollection(CollectionNameUser)
 	err = collection.FindOne(dbConnection.Context, filter).Decode(&result)
 	if err != nil {
@@ -105,11 +104,11 @@ func GetUserByIDService(userID string) (models.User, error) {
 		return result, err
 	}
 	log.Println("Se encontró el usuario")
-	// Devuelve el usuario encontrado.
+	// Devuelve al usuario encontrado.
 	return result, nil
 }
 
-// Función para obtener un gato por id
+// Función para obtener a un usuario por id
 func GetUserByEmailService(userEmail string) (models.User, error) {
 	log.Println("Service: GetUserByEmail")
 	// Crea una nueva instancia a la conexión de base de datos
@@ -117,10 +116,10 @@ func GetUserByEmailService(userEmail string) (models.User, error) {
 	// Define un defer para cerrar la conexión a la base de datos al finalizar la función.
 	defer dbConnection.Close()
 	var result models.User
-	// Crea un filtro para buscar el gato por su ID.
+	// Crea un filtro para buscar al usuario por su ID.
 	filter := bson.M{"email": userEmail}
 
-	// Obtiene la colección de gatos.
+	// Obtiene la colección de usuarios.
 	collection := dbConnection.GetCollection(CollectionNameUser)
 	err := collection.FindOne(dbConnection.Context, filter).Decode(&result)
 	if err != nil {
@@ -144,12 +143,12 @@ func GetAllUserService() ([]models.User, error) {
 	// Define un defer para cerrar la conexión a la base de datos al finalizar la función.
 	defer dbConnection.Close()
 	collection := dbConnection.GetCollection(CollectionNameUser)
-	// Variable que contiene a todos los gatos
+	// Variable que contiene a todos los usuarios en un arreglo
 	var users []models.User
-	// Trae a todos los gatos desde la base de datos
+	// Trae a todos los usuarios desde la base de datos
 	results, err := collection.Find(dbConnection.Context, bson.M{})
 	if err != nil {
-		return users, errors.New("no fue posible traer a todos los gatos")
+		return users, errors.New("no fue posible traer a todos los usuarios")
 	}
 	for results.Next(dbConnection.Context) {
 		var singleUser models.User
@@ -185,7 +184,7 @@ func UpdateUserService(updatedUser models.User, userID string) (models.User, err
 	dbConnection := config.NewDbConnection()
 	// Define un defer para cerrar la conexión a la base de datos al finalizar la función.
 	defer dbConnection.Close()
-	// Obtiene la colección de gatos.
+	// Obtiene la colección de usuarios.
 	collection := dbConnection.GetCollection(CollectionNameUser)
 	_, err = collection.UpdateOne(dbConnection.Context, filter, update)
 	if err != nil {
@@ -196,9 +195,7 @@ func UpdateUserService(updatedUser models.User, userID string) (models.User, err
 }
 
 func DeleteUserService(userID string) error {
-	log.Println("Service: DeleteCat")
-	// Obtiene el ID del gato a partir del parámetro de la ruta.
-	// Crea un objeto ID de MongoDB a partir del ID del gato.
+	// Crea un objeto ID de MongoDB a partir del ID del usuario.
 	oid, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
 		log.Println("No fue posible convertir el ID")
@@ -208,10 +205,10 @@ func DeleteUserService(userID string) error {
 	dbConnection := config.NewDbConnection()
 	// Define un defer para cerrar la conexión a la base de datos al finalizar la función.
 	defer dbConnection.Close()
-	// Se elimina el usuario
+	// Filtro para la query
 	filter := bson.M{"_id": oid}
 	collection := dbConnection.GetCollection(CollectionNameUser)
-	// Elimina el gato de la colección.
+	// Elimina al usuario de la colección.
 	result, _ := collection.DeleteOne(dbConnection.Context, filter)
 	log.Println(result)
 	// Si no hay error

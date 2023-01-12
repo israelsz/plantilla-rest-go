@@ -21,9 +21,8 @@ func main() {
 	log.Println("Start template-go-rest")
 	log.Printf("serverUp, %s ", os.Getenv("ADDR"))
 
-	// Conectar la base de datos
-	//config.NewDbConnection()
-	//println("Conexion lograda")
+	//Se fija el modo de gin desde las variables de entorno (debug | release)
+	gin.SetMode(os.Getenv("GIN_MODE"))
 
 	//Creacion de objeto gin
 	app := gin.Default()
@@ -33,9 +32,6 @@ func main() {
 	app.NoRoute(func(c *gin.Context) {
 		c.JSON(404, gin.H{"message": "Servicio no encontrado."})
 	})
-
-	// Se inicia el middleware JWT
-	//authMiddleware := middleware.LoadJWTAuth()
 
 	// Se registran las rutas(end-points) del proyecto
 	routes.InitRoutes(app)
