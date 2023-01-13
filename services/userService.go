@@ -23,49 +23,74 @@ const (
 // Función que valida un usuario
 func validarUsuarioCreate(user models.User) (bool, error) {
 	err := errors.New("Estructura invalida")
+	utils.Debug("Esto llego del usuario:", user)
 	// Se verifica que el email ingresado sea valido
 	if !govalidator.IsEmail(user.Email) {
-
+		utils.Debug("Email invalido")
 		return false, err
 	}
 	// Se verifica que haya un nombre ingresado
+	// IsAlphanumeric no considera espacios
 	if !govalidator.ByteLength(user.Name, "2", "20") || !govalidator.IsAlphanumeric(user.Name) {
+		utils.Debug("Name invalido")
 		return false, err
 	}
 	// Se verifica que haya una contraseña ingresada
 	if !govalidator.ByteLength(user.Password, "2", "20") || !govalidator.IsAlphanumeric(user.Password) {
+		utils.Debug("Password invalido")
 		return false, err
 	}
 	// Se verifica que el rol sea ingresado
 	if !govalidator.ByteLength(user.Rol, "1", "20") {
+		utils.Debug("Rol invalido")
 		return false, err
 	}
+	utils.Debug("Usuario valido")
 	return true, nil
 }
 
 // Función que valida un usuario
 func validarUsuarioUpdate(user models.User) (bool, error) {
+	utils.Debug("Esto llego", user)
 	err := errors.New("Estructura invalida")
 	// Se verifica que el email ingresado sea valido
-	if govalidator.IsEmail(user.Email) && !(user.Email == "") {
-		err = correoOcupado(user.Email)
-		if err != nil {
+	if user.Email != "" {
+		if !govalidator.IsEmail(user.Email) {
+			utils.Debug("Email invalido")
+			return false, err
+		}
+		err := correoOcupado(user.Email)
+		if err != mongo.ErrNoDocuments {
+			utils.Debug("Correo ocupado")
+			err = errors.New("Correo ocupado")
 			return false, err
 		}
 
 	}
 	// Se verifica que haya un nombre ingresado
-	if (!govalidator.ByteLength(user.Name, "2", "20") || govalidator.IsAlphanumeric(user.Name)) && user.Name != "" {
-		return false, err
+	if user.Name != "" {
+		if !govalidator.ByteLength(user.Name, "2", "20") || !govalidator.IsAlphanumeric(user.Name) {
+			utils.Debug("Nombre invalido")
+			return false, err
+		}
 	}
 	// Se verifica que haya una contraseña ingresada
-	if (!govalidator.ByteLength(user.Password, "2", "20") || !govalidator.IsAlphanumeric(user.Password)) && user.Password != "" {
-		return false, err
+	if user.Password != "" {
+		if !govalidator.ByteLength(user.Password, "2", "20") || !govalidator.IsAlphanumeric(user.Password) {
+			utils.Debug("Password invalido")
+			return false, err
+		}
+
 	}
 	// Se verifica que el rol sea ingresado
-	if !govalidator.ByteLength(user.Rol, "1", "20") && user.Rol != "" {
-		return false, err
+	if user.Rol != "" {
+		if !govalidator.ByteLength(user.Rol, "1", "20") {
+			utils.Debug("Rol invalido")
+			return false, err
+		}
+
 	}
+	utils.Debug("Update valida")
 	return true, nil
 }
 

@@ -79,7 +79,7 @@ func UpdateCat(ctx *gin.Context) {
 		return
 	}
 	//Se envia la respuesta http
-	ctx.JSON(http.StatusCreated, updatedCat)
+	ctx.JSON(http.StatusCreated, "Gato actualizado")
 }
 
 // Servicio para conseguir a todos los gatos de la base de datos

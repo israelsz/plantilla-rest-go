@@ -29,7 +29,7 @@ func main() {
 
 	//Creacion de objeto gin
 	app := gin.Default()
-	// Se agrega al log creado
+	// Se agrega al log creado, imprime por pantalla y en el archivo
 	gin.DefaultWriter = io.MultiWriter(os.Stdout, log.Writer())
 	// Cargar Cors
 	app.Use(middleware.CorsMiddleware())

@@ -89,7 +89,7 @@ func UpdateUser(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Error al updatear al usuario"})
 		return
 	}
-	ctx.JSON(http.StatusCreated, updatedUser)
+	ctx.JSON(http.StatusCreated, "Usuario actualizado")
 }
 
 // Función para obtener un usuario por id

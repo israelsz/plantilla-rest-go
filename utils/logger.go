@@ -22,7 +22,6 @@ func LoadLogFile(filepath string, filename string, maxSize int, maxBackups, maxA
 }
 
 func Debug(args ...any) {
-	log.Println("Hola")
 	if os.Getenv("GIN_MODE") == "debug" {
 		log.Print(args...)
 	}
